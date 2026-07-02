@@ -80,7 +80,12 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
     }
 
     // Necessary requirements: exist nft
-    function buyNFT(address _nftAdrress, uint256 _tokenId) external payable nonReentrant isListed(_nftAdrress, _tokenId) {
+    function buyNFT(address _nftAdrress, uint256 _tokenId)
+        external
+        payable
+        nonReentrant
+        isListed(_nftAdrress, _tokenId)
+    {
         require(msg.value == listings[_nftAdrress][_tokenId].price, "Incorrects price");
 
         // CEI Patterns: first update, second transfer
@@ -91,7 +96,6 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
 
         (bool success,) = item.seller.call{value: msg.value}("");
         require(success, "Transaction failed");
-
 
         emit ItemBought(msg.sender, _nftAdrress, _tokenId, item.price);
     }
