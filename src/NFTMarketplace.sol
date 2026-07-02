@@ -63,6 +63,7 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
     // Necessary requirements: not exist nft and nfts owner is who list
     function listNFT(address _nftAdrress, uint256 _tokenId, uint256 _price)
         external
+        nonReentrant
         notListed(_nftAdrress, _tokenId)
         isOwner(_nftAdrress, _tokenId, msg.sender)
     {
@@ -79,14 +80,18 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
     }
 
     // Necessary requirements: exist nft
-    function buyNFT(address _nftAdrress, uint256 _tokenId) external payable isListed(_nftAdrress, _tokenId) {
-        require(msg.value >= listings[_nftAdrress][_tokenId].price, "Fund not enough");
+    function buyNFT(address _nftAdrress, uint256 _tokenId) external payable nonReentrant isListed(_nftAdrress, _tokenId) {
+        require(msg.value == listings[_nftAdrress][_tokenId].price, "Incorrects price");
 
         // CEI Patterns: first update, second transfer
         Listing memory item = listings[_nftAdrress][_tokenId];
-        delete item;
+        delete listings[nftAddress][tokenId];
 
         IERC721(_nftAdrress).safeTransferFrom(item.seller, msg.sender, _tokenId);
+
+        (bool success,) = item.seller.call{value: msg.value}("");
+        require(success, "Transaction failed");
+
 
         emit ItemBought(msg.sender, _nftAdrress, _tokenId, item.price);
     }
@@ -94,6 +99,7 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
     // Necessary requirements: exist nft and owner of nft
     function cancelListing(address _nftAdrress, uint256 _tokenId)
         external
+        nonReentrant
         isListed(_nftAdrress, _tokenId)
         isOwner(_nftAdrress, _tokenId, msg.sender)
     {
