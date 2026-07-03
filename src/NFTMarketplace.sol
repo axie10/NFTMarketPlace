@@ -90,7 +90,7 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
 
         // CEI Patterns: first update, second transfer
         Listing memory item = listings[_nftAdrress][_tokenId];
-        delete listings[nftAddress][tokenId];
+        delete listings[_nftAdrress][_tokenId];
 
         IERC721(_nftAdrress).safeTransferFrom(item.seller, msg.sender, _tokenId);
 
@@ -104,8 +104,8 @@ contract NFTMarketplace is ReentrancyGuard, Ownable {
     function cancelListing(address _nftAdrress, uint256 _tokenId)
         external
         nonReentrant
-        isListed(_nftAdrress, _tokenId)
         isOwner(_nftAdrress, _tokenId, msg.sender)
+        isListed(_nftAdrress, _tokenId)
     {
         delete listings[_nftAdrress][_tokenId];
         emit ItemCanceled(msg.sender, _nftAdrress, _tokenId);
