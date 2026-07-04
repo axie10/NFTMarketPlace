@@ -148,4 +148,57 @@ contract NFTMarketplaceTest is Test {
         assert(sellerAfter == address(0));
         vm.stopPrank();
     }
+
+    // Buy NFT
+    function testCanNotBuyListedNFT() public {
+        address account3 = vm.addr(4);
+        vm.startPrank(account2);
+        vm.expectRevert();
+        marketplace.buyNFT(address(mockNFT), tokenId);
+        vm.stopPrank();
+    }
+
+    function testCanNotBuyNFTIncorrectPrice() public {
+        address account3 = vm.addr(4);
+        uint256 price = 1 ether;
+        vm.startPrank(account2);
+        marketplace.listNFT(address(mockNFT), tokenId, price);
+        vm.stopPrank();
+
+        vm.startPrank(account3);
+        // fund a wallet
+        vm.deal(account3, price);
+        vm.expectRevert();
+        marketplace.buyNFT{value: price - 1}(address(mockNFT), tokenId);
+        vm.stopPrank();
+    }
+
+    function testBuyNFTCorrectly() public {
+        uint256 price = 1 ether;
+        vm.startPrank(account2);
+        marketplace.listNFT(address(mockNFT), tokenId, price);
+        vm.stopPrank();
+
+        address account3 = vm.addr(4);
+        vm.startPrank(account3);
+        // fund a wallet
+        vm.deal(account3, price);
+        (address sellerBefore,,,) = marketplace.listings(address(mockNFT), tokenId);
+        vm.stopPrank();
+
+        vm.startPrank(account2);
+        uint256 balanceAccount2After = address(account2).balance;
+        // Necessary to approve smart contract transfer user1 to user2
+        mockNFT.approve(address(marketplace), tokenId);
+        vm.stopPrank();
+
+        vm.startPrank(account3);
+        marketplace.buyNFT{value: price}(address(mockNFT), tokenId);
+        (address sellerAfter,,,) = marketplace.listings(address(mockNFT), tokenId);
+        uint256 balanceAccount2Before = address(account2).balance;
+        assert(IERC721(address(mockNFT)).ownerOf(tokenId) == account3);
+        assert(sellerBefore == account2 && sellerAfter == address(0));
+        assert(balanceAccount2Before == balanceAccount2After + price);
+        vm.stopPrank();
+    }
 }
